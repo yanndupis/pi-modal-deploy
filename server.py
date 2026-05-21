@@ -2,15 +2,15 @@
 
 Setup:
     uv run modal setup
-    uv run modal secret create pi-modal-api-key SGLANG_API_KEY=<your-key>
+    uv run python scripts/setup_auth.py --create-modal-secret
 
 Deploy:
     uv run modal deploy server.py
 
 Smoke test:
-    PI_MODAL_API_KEY=<your-key> uv run modal run server.py
-    PI_MODAL_API_KEY=<your-key> uv run modal run server.py --enable-thinking
-    PI_MODAL_API_KEY=<your-key> uv run modal run server.py --tool-test
+    uv run --env-file .env modal run server.py
+    uv run --env-file .env modal run server.py --enable-thinking
+    uv run --env-file .env modal run server.py --tool-test
 
 Skip build-time DeepGEMM precompile while iterating:
     PI_MODAL_PRECOMPILE_DEEPGEMM=0 uv run modal run server.py --help
