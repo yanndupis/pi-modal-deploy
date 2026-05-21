@@ -1,0 +1,13 @@
+{
+  "name": "pi-modal-serve",
+  "version": "0.1.0",
+  "description": "Pi skill for deploying a Modal-hosted SGLang model provider.",
+  "keywords": [
+    "pi-package"
+  ],
+  "pi": {
+    "skills": [
+      "."
+    ]
+  }
+}
