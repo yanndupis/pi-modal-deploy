@@ -14,14 +14,14 @@ from typing import Any
 DEFAULT_MODELS_JSON = Path.home() / ".pi" / "agent" / "models.json"
 DEFAULT_SETTINGS_JSON = Path.home() / ".pi" / "agent" / "settings.json"
 DEFAULT_API_KEY_ENV = "PI_MODAL_API_KEY"
-DEFAULT_QWEN_MODEL_ID = "Qwen/Qwen3.5-27B-FP8"
+DEFAULT_QWEN_MODEL_ID = "Qwen/Qwen3.6-27B-FP8"
 DEFAULT_MODEL_ID = (
     os.environ.get("PI_MODAL_SERVED_MODEL_NAME")
     or os.environ.get("PI_MODAL_MODEL_ID")
     or DEFAULT_QWEN_MODEL_ID
 )
 DEFAULT_MODEL_NAME = os.environ.get("PI_MODAL_MODEL_NAME") or (
-    "Qwen 3.5 27B FP8 on Modal"
+    "Qwen 3.6 27B FP8 on Modal"
     if DEFAULT_MODEL_ID == DEFAULT_QWEN_MODEL_ID
     else DEFAULT_MODEL_ID
 )

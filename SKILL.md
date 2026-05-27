@@ -20,18 +20,19 @@ Use `pi install .` for reusable local setup. For ad-hoc development from a check
 
 ## Current Defaults
 
-- Current default model: `Qwen/Qwen3.5-27B-FP8`
-- Pinned revision: `97f5941bf617e31c5e237364a8602ce3f03a551a`
+- Current default model: `Qwen/Qwen3.6-27B-FP8`
+- Pinned revision: `e89b16ebf1988b3d6befa7de50abc2d76f26eb09`
 - Engine: SGLang via `server.py`
+- SGLang image: `lmsysorg/sglang:v0.5.12.post1-cu130-runtime`
 - GPU: `H100!:1`
 - Context: `131072` by default
 - Parser defaults: `PI_MODAL_REASONING_PARSER=qwen3`, `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
 - Auth: SGLang `--api-key` from Modal Secret `pi-modal-api-key`
 - DeepGEMM: precompiled during Modal image build unless `PI_MODAL_PRECOMPILE_DEEPGEMM=0`
 
-Treat these as a known-good starting point, not a product boundary. The workflow should support other Hugging Face models when the user supplies the model, revision, context length, GPU/TP shape, and parser settings that match that model.
+Treat these as a known-good starting point, not a product boundary. The workflow should support other Hugging Face models when the user supplies the model, revision, context length, GPU/TP shape, SGLang image, and parser settings that match that model.
 
-Do not switch the default to `Qwen/Qwen3.6-27B-FP8` until SGLang issue #23687 is fixed; that checkpoint produced garbage output under `lmsysorg/sglang:v0.5.10.post1-cu130-runtime`.
+`Qwen/Qwen3.6-27B-FP8` produced garbage output under `lmsysorg/sglang:v0.5.10.post1-cu130-runtime` because of SGLang issue #23687. Use an SGLang image that includes the Qwen3.6 FP8 loader fix, such as the default `v0.5.12.post1-cu130-runtime`, before trusting this model.
 
 ## Model And Context Tuning
 
@@ -173,8 +174,8 @@ Use env vars for deliberate experiments:
 
 ```bash
 PI_MODAL_APP_NAME=pi-modal-test \
-PI_MODAL_MODEL_ID=Qwen/Qwen3.5-27B-FP8 \
-PI_MODAL_MODEL_REVISION=97f5941bf617e31c5e237364a8602ce3f03a551a \
+PI_MODAL_MODEL_ID=Qwen/Qwen3.6-27B-FP8 \
+PI_MODAL_MODEL_REVISION=e89b16ebf1988b3d6befa7de50abc2d76f26eb09 \
 PI_MODAL_MAX_MODEL_LEN=131072 \
 uv run --env-file .env modal run server.py --timeout 1800
 ```
@@ -185,7 +186,7 @@ If `PI_MODAL_MODEL_ID` differs from the default and `PI_MODAL_MODEL_REVISION` is
 
 - HTTP `401` or `403`: confirm `PI_MODAL_API_KEY` matches Modal Secret `SGLANG_API_KEY`.
 - HTTP `502`, `503`, or `504`: the server may still be cold-starting; rerun with a longer timeout and inspect Modal logs.
-- Garbage output: check for SGLang loader warnings. Do not use `Qwen/Qwen3.6-27B-FP8` with the current SGLang image.
+- Garbage output: check for SGLang loader warnings and confirm the SGLang image includes the Qwen3.6 FP8 loader fix. Older `v0.5.10.post1` images produced garbage output with `Qwen/Qwen3.6-27B-FP8`.
 - Slow first request: confirm DeepGEMM precompile ran during image build and HF cache used the pinned snapshot.
 - Pi model not visible: reopen Pi's `/model` selector after updating `models.json`.
 

@@ -30,10 +30,10 @@ import modal
 MINUTES = 60
 PORT = 8000
 
-DEFAULT_MODEL_ID = "Qwen/Qwen3.5-27B-FP8"
-DEFAULT_MODEL_REVISION = "97f5941bf617e31c5e237364a8602ce3f03a551a"
+DEFAULT_MODEL_ID = "Qwen/Qwen3.6-27B-FP8"
+DEFAULT_MODEL_REVISION = "e89b16ebf1988b3d6befa7de50abc2d76f26eb09"
 
-APP_NAME = os.environ.get("PI_MODAL_APP_NAME", "pi-modal-qwen3-5-27b-fp8")
+APP_NAME = os.environ.get("PI_MODAL_APP_NAME", "pi-modal-qwen3-6-27b-fp8")
 MODEL_ID = os.environ.get("PI_MODAL_MODEL_ID", DEFAULT_MODEL_ID)
 MODEL_REVISION = os.environ.get("PI_MODAL_MODEL_REVISION")
 if MODEL_REVISION is None and MODEL_ID == DEFAULT_MODEL_ID:
@@ -53,7 +53,7 @@ STARTUP_TIMEOUT = int(os.environ.get("PI_MODAL_STARTUP_TIMEOUT", str(20 * MINUTE
 REQUEST_TIMEOUT = int(os.environ.get("PI_MODAL_REQUEST_TIMEOUT", str(60 * MINUTES)))
 
 SGLANG_IMAGE_TAG = os.environ.get(
-    "PI_MODAL_SGLANG_IMAGE", "lmsysorg/sglang:v0.5.10.post1-cu130-runtime"
+    "PI_MODAL_SGLANG_IMAGE", "lmsysorg/sglang:v0.5.12.post1-cu130-runtime"
 )
 SGLANG_PYTHON = os.environ.get("PI_MODAL_SGLANG_PYTHON", "/usr/bin/python3.12")
 AUTH_SECRET_NAME = os.environ.get("PI_MODAL_AUTH_SECRET", "pi-modal-api-key")
