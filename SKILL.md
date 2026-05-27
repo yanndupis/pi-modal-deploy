@@ -18,17 +18,48 @@ pi --provider <existing-provider> --model <existing-model>
 
 Use `pi install .` for reusable local setup. For ad-hoc development from a checkout, skip installation and launch with `pi --provider <existing-provider> --model <existing-model> --skill .` instead. In that bootstrapped Pi session, follow this skill to deploy the Modal endpoint, register provider `pi-modal`, and verify a plain `pi -p` prompt works. After registration, Pi can use the Modal-hosted model as its default.
 
-## Current MVP
+## Current Defaults
 
-- Default model: `Qwen/Qwen3.5-27B-FP8`
+- Current default model: `Qwen/Qwen3.5-27B-FP8`
 - Pinned revision: `97f5941bf617e31c5e237364a8602ce3f03a551a`
 - Engine: SGLang via `server.py`
 - GPU: `H100!:1`
-- Context: `32768`
+- Context: `131072` by default
+- Parser defaults: `PI_MODAL_REASONING_PARSER=qwen3`, `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
 - Auth: SGLang `--api-key` from Modal Secret `pi-modal-api-key`
 - DeepGEMM: precompiled during Modal image build unless `PI_MODAL_PRECOMPILE_DEEPGEMM=0`
 
+Treat these as a known-good starting point, not a product boundary. The workflow should support other Hugging Face models when the user supplies the model, revision, context length, GPU/TP shape, and parser settings that match that model.
+
 Do not switch the default to `Qwen/Qwen3.6-27B-FP8` until SGLang issue #23687 is fixed; that checkpoint produced garbage output under `lmsysorg/sglang:v0.5.10.post1-cu130-runtime`.
+
+## Model And Context Tuning
+
+Keep the server context length and the Pi model registration in sync. `server.py` reads `PI_MODAL_MAX_MODEL_LEN`, and `scripts/register_pi_model.py` uses the same environment variable as the default `contextWindow`.
+
+The current default uses a 131,072-token context window for a single-H100 Modal deployment. If a selected model and GPU/TP configuration can support a larger window, set `PI_MODAL_MAX_MODEL_LEN` before smoke testing, deploying, and registering:
+
+```bash
+PI_MODAL_MAX_MODEL_LEN=262144 uv run --env-file .env modal run server.py \
+  --timeout 1800 --prompt "Say ready."
+PI_MODAL_MAX_MODEL_LEN=262144 uv run --env-file .env modal deploy server.py
+PI_MODAL_MAX_MODEL_LEN=262144 uv run --env-file .env python scripts/register_pi_model.py \
+  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+```
+
+For non-default models, set the model-related environment variables deliberately:
+
+```bash
+PI_MODAL_MODEL_ID=org/model-name \
+PI_MODAL_MODEL_REVISION= \
+PI_MODAL_SERVED_MODEL_NAME=org/model-name \
+PI_MODAL_MAX_MODEL_LEN=131072 \
+PI_MODAL_REASONING_PARSER= \
+PI_MODAL_TOOL_CALL_PARSER= \
+uv run --env-file .env modal run server.py --timeout 1800
+```
+
+Empty parser values omit the SGLang parser flags. Use model-specific parser names only when the selected model and SGLang image support them.
 
 ## Preconditions
 
@@ -110,7 +141,7 @@ uv run --env-file .env python scripts/register_pi_model.py \
   --base-url "https://YOUR-ENDPOINT.modal.run/v1"
 ```
 
-The script atomically updates `~/.pi/agent/models.json`, creates or updates provider `pi-modal`, reads `PI_MODAL_API_KEY` from the environment unless `--api-key` is passed explicitly, and preserves unrelated providers. It also sets Pi's default provider/model and `defaultThinkingLevel: "off"` so Qwen returns normal text through Pi by default.
+The script atomically updates `~/.pi/agent/models.json`, creates or updates provider `pi-modal`, reads `PI_MODAL_API_KEY` from the environment unless `--api-key` is passed explicitly, advertises `contextWindow` from `PI_MODAL_MAX_MODEL_LEN`, and preserves unrelated providers. It also sets Pi's default provider/model and `defaultThinkingLevel: "off"` so reasoning-capable models return normal text through Pi by default.
 
 Use a custom path for dry runs:
 
@@ -130,7 +161,7 @@ Before trusting the model in Pi, run:
 uv run --env-file .env modal run server.py --timeout 1800 --tool-test
 ```
 
-Pass only if the returned message contains structured `tool_calls`. If the model emits plain text instead, inspect SGLang parser flags before changing Pi config:
+Pass only if the returned message contains structured `tool_calls`. If the model emits plain text instead, inspect SGLang parser flags before changing Pi config. For the current Qwen default, those are:
 
 - `--reasoning-parser qwen3`
 - `--tool-call-parser qwen3_coder`
@@ -144,10 +175,11 @@ Use env vars for deliberate experiments:
 PI_MODAL_APP_NAME=pi-modal-test \
 PI_MODAL_MODEL_ID=Qwen/Qwen3.5-27B-FP8 \
 PI_MODAL_MODEL_REVISION=97f5941bf617e31c5e237364a8602ce3f03a551a \
+PI_MODAL_MAX_MODEL_LEN=131072 \
 uv run --env-file .env modal run server.py --timeout 1800
 ```
 
-If `PI_MODAL_MODEL_ID` differs from the default and `PI_MODAL_MODEL_REVISION` is unset, no revision is pinned. Set both for reproducible experiments.
+If `PI_MODAL_MODEL_ID` differs from the default and `PI_MODAL_MODEL_REVISION` is unset, no revision is pinned. Set both for reproducible experiments. Override `PI_MODAL_REASONING_PARSER` and `PI_MODAL_TOOL_CALL_PARSER`, or set them to empty strings, when testing non-Qwen models.
 
 ## Debugging
 
