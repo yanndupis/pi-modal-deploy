@@ -67,13 +67,13 @@ HF_CACHE_VOL = modal.Volume.from_name(
     os.environ.get("PI_MODAL_HF_CACHE_VOLUME", "huggingface-cache"),
     create_if_missing=True,
 )
-HF_CACHE_PATH = "/root/.cache/huggingface"
+HF_CACHE_PATH = os.environ.get("PI_MODAL_HF_CACHE_PATH", "/cache/huggingface")
 
 DG_CACHE_VOL = modal.Volume.from_name(
     os.environ.get("PI_MODAL_DEEPGEMM_CACHE_VOLUME", "deepgemm-cache"),
     create_if_missing=True,
 )
-DG_CACHE_PATH = "/root/.cache/deep_gemm"
+DG_CACHE_PATH = os.environ.get("PI_MODAL_DEEPGEMM_CACHE_PATH", "/cache/deep_gemm")
 
 AUTH_SECRET = modal.Secret.from_name(
     AUTH_SECRET_NAME,
@@ -83,6 +83,7 @@ AUTH_SECRET = modal.Secret.from_name(
 sglang_image = (
     modal.Image.from_registry(SGLANG_IMAGE_TAG, add_python="3.11")
     .entrypoint([])
+    .run_commands(f"{SGLANG_PYTHON} -m pip install distro==1.9.0")
     .uv_pip_install("requests==2.32.5")
     .env(
         {
