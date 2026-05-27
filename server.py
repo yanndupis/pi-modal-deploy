@@ -42,7 +42,8 @@ SERVED_MODEL_NAME = os.environ.get("PI_MODAL_SERVED_MODEL_NAME", MODEL_ID)
 
 GPU = os.environ.get("PI_MODAL_GPU", "H100!:1")
 TP_SIZE = int(os.environ.get("PI_MODAL_TP_SIZE", "1"))
-MAX_MODEL_LEN = int(os.environ.get("PI_MODAL_MAX_MODEL_LEN", "32768"))
+DEFAULT_MAX_MODEL_LEN = 131072
+MAX_MODEL_LEN = int(os.environ.get("PI_MODAL_MAX_MODEL_LEN", str(DEFAULT_MAX_MODEL_LEN)))
 SCALEDOWN_WINDOW = int(os.environ.get("PI_MODAL_SCALEDOWN_WINDOW", str(10 * MINUTES)))
 
 TARGET_INPUTS = int(os.environ.get("PI_MODAL_TARGET_INPUTS", "8"))
@@ -57,6 +58,8 @@ SGLANG_IMAGE_TAG = os.environ.get(
 SGLANG_PYTHON = os.environ.get("PI_MODAL_SGLANG_PYTHON", "/usr/bin/python3.12")
 AUTH_SECRET_NAME = os.environ.get("PI_MODAL_AUTH_SECRET", "pi-modal-api-key")
 SGLANG_API_KEY_ENV = "SGLANG_API_KEY"
+REASONING_PARSER = os.environ.get("PI_MODAL_REASONING_PARSER", "qwen3").strip()
+TOOL_CALL_PARSER = os.environ.get("PI_MODAL_TOOL_CALL_PARSER", "qwen3_coder").strip()
 EXTRA_SERVER_ARGS = os.environ.get("PI_MODAL_EXTRA_SERVER_ARGS", "")
 PRECOMPILE_DEEPGEMM = os.environ.get("PI_MODAL_PRECOMPILE_DEEPGEMM", "1") != "0"
 
@@ -152,6 +155,8 @@ def _server_command(
     model_revision: str | None,
     served_model_name: str,
     max_model_len: int,
+    reasoning_parser: str,
+    tool_call_parser: str,
     api_key: str,
 ) -> list[str]:
     cmd = [
@@ -170,10 +175,6 @@ def _server_command(
         str(TP_SIZE),
         "--context-length",
         str(max_model_len),
-        "--reasoning-parser",
-        "qwen3",
-        "--tool-call-parser",
-        "qwen3_coder",
         "--api-key",
         api_key,
         "--enable-cache-report",
@@ -189,6 +190,12 @@ def _server_command(
         "--max-running-requests",
         str(MAX_INPUTS),
     ]
+
+    if reasoning_parser:
+        cmd.extend(["--reasoning-parser", reasoning_parser])
+
+    if tool_call_parser:
+        cmd.extend(["--tool-call-parser", tool_call_parser])
 
     if model_revision:
         cmd.extend(["--revision", model_revision])
@@ -260,6 +267,8 @@ class SGLangServer:
     model_revision: str = modal.parameter(default=MODEL_REVISION or "")
     served_model_name: str = modal.parameter(default=SERVED_MODEL_NAME)
     max_model_len: int = modal.parameter(default=MAX_MODEL_LEN)
+    reasoning_parser: str = modal.parameter(default=REASONING_PARSER)
+    tool_call_parser: str = modal.parameter(default=TOOL_CALL_PARSER)
 
     @modal.enter()
     def start(self) -> None:
@@ -270,6 +279,8 @@ class SGLangServer:
             model_revision=revision,
             served_model_name=self.served_model_name,
             max_model_len=int(self.max_model_len),
+            reasoning_parser=self.reasoning_parser,
+            tool_call_parser=self.tool_call_parser,
             api_key=api_key,
         )
 
@@ -405,6 +416,8 @@ async def main(
         model_revision=MODEL_REVISION or "",
         served_model_name=SERVED_MODEL_NAME,
         max_model_len=MAX_MODEL_LEN,
+        reasoning_parser=REASONING_PARSER,
+        tool_call_parser=TOOL_CALL_PARSER,
     )
     url = await server.serve.get_web_url.aio()
     print(f"Testing {SERVED_MODEL_NAME} at {url}")
