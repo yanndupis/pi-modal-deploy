@@ -32,8 +32,6 @@ Use `pi install .` for reusable local setup. For ad-hoc development from a check
 
 Treat these as a known-good starting point, not a product boundary. The workflow should support other Hugging Face models when the user supplies the model, revision, context length, GPU/TP shape, SGLang image, and parser settings that match that model.
 
-`Qwen/Qwen3.6-27B-FP8` produced garbage output under `lmsysorg/sglang:v0.5.10.post1-cu130-runtime` because of SGLang issue #23687. Use an SGLang image that includes the Qwen3.6 FP8 loader fix, such as the default `v0.5.12.post1-cu130-runtime`, before trusting this model.
-
 ## Model And Context Tuning
 
 Keep the server context length and the Pi model registration in sync. `server.py` reads `PI_MODAL_MAX_MODEL_LEN`, and `scripts/register_pi_model.py` uses the same environment variable as the default `contextWindow`.
@@ -186,7 +184,7 @@ If `PI_MODAL_MODEL_ID` differs from the default and `PI_MODAL_MODEL_REVISION` is
 
 - HTTP `401` or `403`: confirm `PI_MODAL_API_KEY` matches Modal Secret `SGLANG_API_KEY`.
 - HTTP `502`, `503`, or `504`: the server may still be cold-starting; rerun with a longer timeout and inspect Modal logs.
-- Garbage output: check for SGLang loader warnings and confirm the SGLang image includes the Qwen3.6 FP8 loader fix. Older `v0.5.10.post1` images produced garbage output with `Qwen/Qwen3.6-27B-FP8`.
+- Unexpected model output: confirm the selected model, revision, SGLang image, context length, and parser settings match each other.
 - Slow first request: confirm DeepGEMM precompile ran during image build and HF cache used the pinned snapshot.
 - Pi model not visible: reopen Pi's `/model` selector after updating `models.json`.
 
