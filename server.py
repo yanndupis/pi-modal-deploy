@@ -30,10 +30,10 @@ import modal
 MINUTES = 60
 PORT = 8000
 
-DEFAULT_MODEL_ID = "Qwen/Qwen3.5-27B-FP8"
-DEFAULT_MODEL_REVISION = "97f5941bf617e31c5e237364a8602ce3f03a551a"
+DEFAULT_MODEL_ID = "Qwen/Qwen3.6-27B-FP8"
+DEFAULT_MODEL_REVISION = "e89b16ebf1988b3d6befa7de50abc2d76f26eb09"
 
-APP_NAME = os.environ.get("PI_MODAL_APP_NAME", "pi-modal-qwen3-5-27b-fp8")
+APP_NAME = os.environ.get("PI_MODAL_APP_NAME", "pi-modal-qwen3-6-27b-fp8")
 MODEL_ID = os.environ.get("PI_MODAL_MODEL_ID", DEFAULT_MODEL_ID)
 MODEL_REVISION = os.environ.get("PI_MODAL_MODEL_REVISION")
 if MODEL_REVISION is None and MODEL_ID == DEFAULT_MODEL_ID:
@@ -53,7 +53,7 @@ STARTUP_TIMEOUT = int(os.environ.get("PI_MODAL_STARTUP_TIMEOUT", str(20 * MINUTE
 REQUEST_TIMEOUT = int(os.environ.get("PI_MODAL_REQUEST_TIMEOUT", str(60 * MINUTES)))
 
 SGLANG_IMAGE_TAG = os.environ.get(
-    "PI_MODAL_SGLANG_IMAGE", "lmsysorg/sglang:v0.5.10.post1-cu130-runtime"
+    "PI_MODAL_SGLANG_IMAGE", "lmsysorg/sglang:v0.5.12.post1-cu130-runtime"
 )
 SGLANG_PYTHON = os.environ.get("PI_MODAL_SGLANG_PYTHON", "/usr/bin/python3.12")
 AUTH_SECRET_NAME = os.environ.get("PI_MODAL_AUTH_SECRET", "pi-modal-api-key")
@@ -67,13 +67,13 @@ HF_CACHE_VOL = modal.Volume.from_name(
     os.environ.get("PI_MODAL_HF_CACHE_VOLUME", "huggingface-cache"),
     create_if_missing=True,
 )
-HF_CACHE_PATH = "/root/.cache/huggingface"
+HF_CACHE_PATH = os.environ.get("PI_MODAL_HF_CACHE_PATH", "/cache/huggingface")
 
 DG_CACHE_VOL = modal.Volume.from_name(
     os.environ.get("PI_MODAL_DEEPGEMM_CACHE_VOLUME", "deepgemm-cache"),
     create_if_missing=True,
 )
-DG_CACHE_PATH = "/root/.cache/deep_gemm"
+DG_CACHE_PATH = os.environ.get("PI_MODAL_DEEPGEMM_CACHE_PATH", "/cache/deep_gemm")
 
 AUTH_SECRET = modal.Secret.from_name(
     AUTH_SECRET_NAME,
@@ -83,6 +83,7 @@ AUTH_SECRET = modal.Secret.from_name(
 sglang_image = (
     modal.Image.from_registry(SGLANG_IMAGE_TAG, add_python="3.11")
     .entrypoint([])
+    .run_commands(f"{SGLANG_PYTHON} -m pip install distro==1.9.0")
     .uv_pip_install("requests==2.32.5")
     .env(
         {
