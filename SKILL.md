@@ -28,6 +28,7 @@ Use `pi install .` for reusable local setup. For ad-hoc development from a check
 - Tensor parallelism: `1`
 - Context: `131072` by default
 - Parser defaults: `PI_MODAL_REASONING_PARSER=qwen3`, `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
+- Speculative decoding: SGLang EAGLE with `SGLANG_ENABLE_SPEC_V2=1`
 - Auth: SGLang `--api-key` from Modal Secret `pi-modal-api-key`
 - DeepGEMM: precompiled during Modal image build unless `PI_MODAL_PRECOMPILE_DEEPGEMM=0`
 
@@ -51,9 +52,11 @@ The default preset expands to:
 - `PI_MODAL_GPU=H100:1`
 - `PI_MODAL_TP_SIZE=1`
 - `PI_MODAL_SGLANG_IMAGE=lmsysorg/sglang:v0.5.12.post1-cu130-runtime`
+- `PI_MODAL_SGLANG_ENV="SGLANG_ENABLE_SPEC_V2=1"`
 - `PI_MODAL_REASONING_PARSER=qwen3`
 - `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
 - `PI_MODAL_THINKING_TEMPLATE_FLAG=enable_thinking`
+- `PI_MODAL_EXTRA_SERVER_ARGS="--speculative-algorithm EAGLE --speculative-num-steps 3 --speculative-eagle-topk 1 --speculative-num-draft-tokens 4 --mamba-scheduler-strategy extra_buffer --page-size 64"`
 
 ### DeepSeek V4 Flash FP4
 

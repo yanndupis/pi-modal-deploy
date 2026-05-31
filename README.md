@@ -50,7 +50,7 @@ This repo ships presets for the following Modal-hosted SGLang models:
 | `Qwen/Qwen3.6-27B-FP8` | `H100:1` | `131072` |
 | `deepseek-ai/DeepSeek-V4-Flash` | `H200:4` | `65536` |
 
-Qwen 3.6 is the default model. To use DeepSeek V4 Flash instead, set:
+Qwen 3.6 is the default model and uses SGLang EAGLE speculative decoding for lower latency. To use DeepSeek V4 Flash instead, set:
 
 ```bash
 PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash

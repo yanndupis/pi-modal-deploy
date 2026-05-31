@@ -36,6 +36,22 @@ DEEPSEEK_V4_FLASH_MODEL_ID = "deepseek-ai/DeepSeek-V4-Flash"
 QWEN_SGLANG_IMAGE_TAG = "lmsysorg/sglang:v0.5.12.post1-cu130-runtime"
 DEEPSEEK_SGLANG_IMAGE_TAG = "lmsysorg/sglang:v0.5.12.post1"
 DEFAULT_MODEL_ID = QWEN_MODEL_ID
+QWEN_SPECULATIVE_EXTRA_SERVER_ARGS = " ".join(
+    [
+        "--speculative-algorithm",
+        "EAGLE",
+        "--speculative-num-steps",
+        "3",
+        "--speculative-eagle-topk",
+        "1",
+        "--speculative-num-draft-tokens",
+        "4",
+        "--mamba-scheduler-strategy",
+        "extra_buffer",
+        "--page-size",
+        "64",
+    ]
+)
 DEEPSEEK_V4_FLASH_EXTRA_SERVER_ARGS = " ".join(
     [
         "--trust-remote-code",
@@ -52,13 +68,14 @@ DEEPSEEK_V4_FLASH_EXTRA_SERVER_ARGS = " ".join(
 MODEL_PRESETS = {
     QWEN_MODEL_ID: {
         "app_name": "pi-modal-qwen3-6-27b-fp8",
+        "extra_server_args": QWEN_SPECULATIVE_EXTRA_SERVER_ARGS,
         "gpu": "H100:1",
         "max_model_len": "131072",
         "mem_fraction_static": "0.8",
         "precompile_deepgemm": "1",
         "reasoning_parser": "qwen3",
         "revision": QWEN_MODEL_REVISION,
-        "sglang_env": "",
+        "sglang_env": "SGLANG_ENABLE_SPEC_V2=1",
         "sglang_image": QWEN_SGLANG_IMAGE_TAG,
         "thinking_template_flag": "enable_thinking",
         "tool_call_parser": "qwen3_coder",
