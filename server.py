@@ -584,6 +584,23 @@ async def _post_chat_completion(
     raise TimeoutError(f"No chat completion response within {timeout} seconds")
 
 
+async def _timed_chat_completion(
+    *,
+    url: str,
+    api_key: str,
+    payload: dict[str, Any],
+    timeout: int,
+) -> tuple[dict[str, Any], float]:
+    started_at = time.monotonic()
+    response = await _post_chat_completion(
+        url=url,
+        api_key=api_key,
+        payload=payload,
+        timeout=timeout,
+    )
+    return response, time.monotonic() - started_at
+
+
 def _local_api_key() -> str:
     api_key = os.environ.get("PI_MODAL_API_KEY") or os.environ.get(SGLANG_API_KEY_ENV)
     if not api_key:
@@ -600,7 +617,14 @@ async def main(
     tool_test: bool = False,
     timeout: int = 30 * MINUTES,
     enable_thinking: bool = False,
+    max_tokens: int = 128,
+    repeat: int = 1,
 ) -> None:
+    if max_tokens < 1:
+        raise ValueError("max_tokens must be at least 1.")
+    if repeat < 1:
+        raise ValueError("repeat must be at least 1.")
+
     api_key = _local_api_key()
     server = SGLangServer(
         model_id=MODEL_ID,
@@ -622,25 +646,46 @@ async def main(
     payload: dict[str, Any]
     if tool_test:
         payload = _tool_call_payload(SERVED_MODEL_NAME)
+        payload["max_tokens"] = max_tokens
     else:
         payload = {
             "model": SERVED_MODEL_NAME,
             "messages": _sample_messages(prompt),
-            "max_tokens": 128,
+            "max_tokens": max_tokens,
             "temperature": 0,
         }
         if chat_template_kwargs := _chat_template_kwargs(enable_thinking):
             payload["chat_template_kwargs"] = chat_template_kwargs
 
-    response = await _post_chat_completion(
-        url=url,
-        api_key=api_key,
-        payload=payload,
-        timeout=timeout,
-    )
+    response: dict[str, Any] | None = None
+    timings: list[float] = []
+    for index in range(repeat):
+        response, elapsed = await _timed_chat_completion(
+            url=url,
+            api_key=api_key,
+            payload=payload,
+            timeout=timeout,
+        )
+        timings.append(elapsed)
+        usage = response.get("usage", {})
+        token_summary = ""
+        if usage:
+            token_summary = (
+                f", prompt_tokens={usage.get('prompt_tokens')}, "
+                f"completion_tokens={usage.get('completion_tokens')}, "
+                f"total_tokens={usage.get('total_tokens')}"
+            )
+        print(f"Request {index + 1}/{repeat}: {elapsed:.2f}s{token_summary}")
 
+    assert response is not None
     message = response["choices"][0]["message"]
     print(json.dumps(message, indent=2))
+    if repeat > 1:
+        average = sum(timings) / len(timings)
+        print(
+            "Timing summary: "
+            f"min={min(timings):.2f}s, avg={average:.2f}s, max={max(timings):.2f}s"
+        )
 
     if tool_test and not message.get("tool_calls"):
         raise RuntimeError("Tool-call smoke test returned no structured tool_calls.")
