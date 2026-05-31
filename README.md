@@ -1,4 +1,4 @@
-# pi-modal-serve
+# pi-modal-deploy
 
 Deploy a Modal-hosted SGLang endpoint and register it as a Pi model provider.
 
@@ -7,14 +7,14 @@ Deploy a Modal-hosted SGLang endpoint and register it as a Pi model provider.
 Install directly from GitHub:
 
 ```bash
-pi install git:github.com/yanndupis/pi-modal-serve
+pi install git:github.com/yanndupis/pi-modal-deploy
 ```
 
 For local development, install this checkout as a Pi package:
 
 ```bash
-git clone https://github.com/yanndupis/pi-modal-serve.git
-cd pi-modal-serve
+git clone https://github.com/yanndupis/pi-modal-deploy.git
+cd pi-modal-deploy
 uv sync
 uv run modal setup
 pi install .
