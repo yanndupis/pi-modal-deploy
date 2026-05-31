@@ -24,7 +24,7 @@ Use `pi install .` for reusable local setup. For ad-hoc development from a check
 - Pinned revision: `e89b16ebf1988b3d6befa7de50abc2d76f26eb09`
 - Engine: SGLang via `server.py`
 - SGLang image: `lmsysorg/sglang:v0.5.12.post1-cu130-runtime`
-- GPU: `H100!:1`
+- GPU: `H100:1`
 - Tensor parallelism: `1`
 - Context: `131072` by default
 - Parser defaults: `PI_MODAL_REASONING_PARSER=qwen3`, `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
@@ -48,7 +48,7 @@ The default preset expands to:
 - `PI_MODAL_APP_NAME=pi-modal-qwen3-6-27b-fp8`
 - `PI_MODAL_MODEL_ID=Qwen/Qwen3.6-27B-FP8`
 - `PI_MODAL_MODEL_REVISION=e89b16ebf1988b3d6befa7de50abc2d76f26eb09`
-- `PI_MODAL_GPU=H100!:1`
+- `PI_MODAL_GPU=H100:1`
 - `PI_MODAL_TP_SIZE=1`
 - `PI_MODAL_SGLANG_IMAGE=lmsysorg/sglang:v0.5.12.post1-cu130-runtime`
 - `PI_MODAL_REASONING_PARSER=qwen3`
