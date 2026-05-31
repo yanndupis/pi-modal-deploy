@@ -14,18 +14,28 @@ from typing import Any
 DEFAULT_MODELS_JSON = Path.home() / ".pi" / "agent" / "models.json"
 DEFAULT_SETTINGS_JSON = Path.home() / ".pi" / "agent" / "settings.json"
 DEFAULT_API_KEY_ENV = "PI_MODAL_API_KEY"
-DEFAULT_QWEN_MODEL_ID = "Qwen/Qwen3.6-27B-FP8"
+QWEN_MODEL_ID = "Qwen/Qwen3.6-27B-FP8"
+DEEPSEEK_V4_FLASH_MODEL_ID = "deepseek-ai/DeepSeek-V4-Flash"
+MODEL_DISPLAY_NAMES = {
+    QWEN_MODEL_ID: "Qwen 3.6 27B FP8 on Modal",
+    DEEPSEEK_V4_FLASH_MODEL_ID: "DeepSeek V4 Flash on Modal",
+}
+MODEL_THINKING_FORMATS = {
+    QWEN_MODEL_ID: "qwen-chat-template",
+    DEEPSEEK_V4_FLASH_MODEL_ID: "deepseek",
+}
+MODEL_CONTEXT_WINDOWS = {
+    QWEN_MODEL_ID: 131072,
+    DEEPSEEK_V4_FLASH_MODEL_ID: 65536,
+}
 DEFAULT_MODEL_ID = (
     os.environ.get("PI_MODAL_SERVED_MODEL_NAME")
     or os.environ.get("PI_MODAL_MODEL_ID")
-    or DEFAULT_QWEN_MODEL_ID
+    or QWEN_MODEL_ID
 )
-DEFAULT_MODEL_NAME = os.environ.get("PI_MODAL_MODEL_NAME") or (
-    "Qwen 3.6 27B FP8 on Modal"
-    if DEFAULT_MODEL_ID == DEFAULT_QWEN_MODEL_ID
-    else DEFAULT_MODEL_ID
-)
-DEFAULT_CONTEXT_WINDOW = int(os.environ.get("PI_MODAL_MAX_MODEL_LEN", "131072"))
+DEFAULT_MODEL_NAME_ENV = os.environ.get("PI_MODAL_MODEL_NAME")
+DEFAULT_THINKING_FORMAT_ENV = os.environ.get("PI_MODAL_THINKING_FORMAT")
+DEFAULT_CONTEXT_WINDOW_ENV = os.environ.get("PI_MODAL_MAX_MODEL_LEN")
 DEFAULT_MAX_TOKENS = int(os.environ.get("PI_MODAL_MAX_TOKENS", "8192"))
 THINKING_LEVELS = ("off", "minimal", "low", "medium", "high", "xhigh")
 THINKING_FORMATS = (
@@ -50,15 +60,39 @@ def parse_args() -> argparse.Namespace:
         help=f"Provider API key. Defaults to ${DEFAULT_API_KEY_ENV} when omitted.",
     )
     parser.add_argument("--model-id", default=DEFAULT_MODEL_ID)
-    parser.add_argument("--model-name", default=DEFAULT_MODEL_NAME)
-    parser.add_argument("--context-window", type=positive_int, default=DEFAULT_CONTEXT_WINDOW)
+    parser.add_argument("--model-name")
+    parser.add_argument("--context-window", type=positive_int)
     parser.add_argument("--max-tokens", type=positive_int, default=DEFAULT_MAX_TOKENS)
     parser.add_argument("--api", default="openai-completions")
     parser.add_argument("--reasoning", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--thinking-format", choices=THINKING_FORMATS, default="qwen-chat-template")
+    parser.add_argument("--thinking-format", choices=THINKING_FORMATS)
     parser.add_argument("--set-default", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--default-thinking-level", choices=THINKING_LEVELS, default="off")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.model_name is None:
+        args.model_name = default_model_name(args.model_id)
+    if args.context_window is None:
+        args.context_window = default_context_window(args.model_id)
+    if args.thinking_format is None:
+        args.thinking_format = default_thinking_format(args.model_id)
+    return args
+
+
+def default_model_name(model_id: str) -> str:
+    return DEFAULT_MODEL_NAME_ENV or MODEL_DISPLAY_NAMES.get(model_id, model_id)
+
+
+def default_context_window(model_id: str) -> int:
+    if DEFAULT_CONTEXT_WINDOW_ENV:
+        return positive_int(DEFAULT_CONTEXT_WINDOW_ENV)
+    return MODEL_CONTEXT_WINDOWS.get(model_id, 131072)
+
+
+def default_thinking_format(model_id: str) -> str:
+    return DEFAULT_THINKING_FORMAT_ENV or MODEL_THINKING_FORMATS.get(
+        model_id,
+        "qwen-chat-template",
+    )
 
 
 def positive_int(value: str) -> int:
