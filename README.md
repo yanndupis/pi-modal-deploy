@@ -71,8 +71,6 @@ CPU, memory, volumes, region multipliers, and non-preemptible settings can add t
 
 Cold starts can take several minutes because SGLang has to load model weights and prepare runtime kernels. Once warm, short smoke-test requests have completed quickly in validation. For interactive Pi sessions, consider keeping the Modal app warm long enough to avoid repeated cold starts.
 
-During `modal run`, logs may show `SIGTERM`, scheduler exit code `-15`, or `Runner terminated` after a successful `POST /v1/chat/completions -> 200 OK`. That is normal teardown after the smoke test completes.
-
 ## Manual Commands
 
 The skill runs these steps for you, but the core commands are:
