@@ -99,6 +99,7 @@ Start the DeepSeek preset at `PI_MODAL_MAX_MODEL_LEN=65536`. The first bring-up 
 
 Source notes for this preset:
 
+- Modal SGLang low-latency example: https://modal.com/docs/examples/sglang_low_latency
 - DeepSeek V4 Flash: https://docs.sglang.io/cookbook/autoregressive/DeepSeek/DeepSeek-V4
 - Qwen3.6: https://docs.sglang.io/cookbook/autoregressive/Qwen/Qwen3.6
 - Modal GPU shapes: https://modal.com/docs/guide/gpu

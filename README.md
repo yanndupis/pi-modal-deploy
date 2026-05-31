@@ -82,3 +82,9 @@ uv run --env-file .env modal deploy server.py
 uv run --env-file .env python scripts/register_pi_model.py \
   --base-url "https://YOUR-ENDPOINT.modal.run/v1"
 ```
+
+## References
+
+- [Modal SGLang low-latency example](https://modal.com/docs/examples/sglang_low_latency)
+- [SGLang Qwen3.6 cookbook](https://docs.sglang.io/cookbook/autoregressive/Qwen/Qwen3.6)
+- [SGLang DeepSeek V4 cookbook](https://docs.sglang.io/cookbook/autoregressive/DeepSeek/DeepSeek-V4)
