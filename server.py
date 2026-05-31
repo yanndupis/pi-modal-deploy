@@ -68,7 +68,7 @@ MODEL_PRESETS = {
         "app_name": "pi-modal-deepseek-v4-flash",
         "extra_server_args": DEEPSEEK_V4_FLASH_EXTRA_SERVER_ARGS,
         "gpu": "H200:4",
-        "max_model_len": "8192",
+        "max_model_len": "65536",
         "mem_fraction_static": "",
         "precompile_deepgemm": "0",
         "reasoning_parser": "deepseek-v4",

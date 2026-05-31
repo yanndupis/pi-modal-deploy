@@ -41,6 +41,38 @@ Once the flow finishes, Pi should use:
 - Model: the Modal-hosted model registered by the skill
 - Thinking: `off` by default, with `Shift+Tab` available in interactive Pi to cycle thinking levels
 
+## Supported And Tested Models
+
+This repo ships presets for the following Modal-hosted SGLang models:
+
+| Model | Modal GPU | Context |
+| --- | --- | ---: |
+| `Qwen/Qwen3.6-27B-FP8` | `H100!:1` | `131072` |
+| `deepseek-ai/DeepSeek-V4-Flash` | `H200:4` | `65536` |
+
+Qwen 3.6 is the default model. To use DeepSeek V4 Flash instead, set:
+
+```bash
+PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash
+```
+
+Both presets are intended for remote GPU serving on Modal, not local model execution.
+
+## Cost And Startup Expectations
+
+Modal bills for actual runtime, so cost depends mostly on how long the endpoint stays warm. At current Modal GPU pricing, the rough GPU-only cost is:
+
+| Preset | GPU cost |
+| --- | ---: |
+| Qwen 3.6 on `H100!:1` | about `$3.95 / hour` |
+| DeepSeek V4 Flash on `H200:4` | about `$18.16 / hour` |
+
+CPU, memory, volumes, region multipliers, and non-preemptible settings can add to this. Check the [Modal pricing page](https://modal.com/pricing) for current rates before running long sessions.
+
+Cold starts can take several minutes because SGLang has to load model weights and prepare runtime kernels. Once warm, short smoke-test requests have completed quickly in validation. For interactive Pi sessions, consider keeping the Modal app warm long enough to avoid repeated cold starts.
+
+During `modal run`, logs may show `SIGTERM`, scheduler exit code `-15`, or `Runner terminated` after a successful `POST /v1/chat/completions -> 200 OK`. That is normal teardown after the smoke test completes.
+
 ## Manual Commands
 
 The skill runs these steps for you, but the core commands are:

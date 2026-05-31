@@ -87,7 +87,7 @@ The DeepSeek preset expands to:
 - `PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash`
 - `PI_MODAL_GPU=H200:4`
 - `PI_MODAL_TP_SIZE=4`
-- `PI_MODAL_MAX_MODEL_LEN=8192`
+- `PI_MODAL_MAX_MODEL_LEN=65536`
 - `PI_MODAL_SGLANG_IMAGE=lmsysorg/sglang:v0.5.12.post1`
 - `PI_MODAL_REASONING_PARSER=deepseek-v4`
 - `PI_MODAL_TOOL_CALL_PARSER=deepseekv4`
@@ -95,7 +95,7 @@ The DeepSeek preset expands to:
 - `PI_MODAL_THINKING_TEMPLATE_FLAG=thinking`
 - `PI_MODAL_EXTRA_SERVER_ARGS="--trust-remote-code --moe-runner-backend flashinfer_mxfp4 --disable-cuda-graph --skip-server-warmup --disable-flashinfer-autotune --max-total-tokens 262144"`
 
-Start the DeepSeek preset at `PI_MODAL_MAX_MODEL_LEN=8192` because it matches the upstream SGLang bring-up shape for a basic TP=4 server and keeps the first Modal validation conservative. DeepSeek V4 advertises a 1M-token context, and SGLang recommends much larger limits for long-reasoning benchmarks, but raise Modal context gradually after the base deployment works and GPU memory is confirmed.
+Start the DeepSeek preset at `PI_MODAL_MAX_MODEL_LEN=65536`. The first bring-up used 8,192 tokens to reduce variables, but 65,536 is a more useful public default for Pi coding-agent sessions while staying below the explicit `--max-total-tokens 262144` cap. DeepSeek V4 advertises a 1M-token context, and SGLang recommends much larger limits for long-reasoning benchmarks, but raise Modal context gradually after the base deployment works and GPU memory is confirmed.
 
 Source notes for this preset:
 
@@ -108,7 +108,7 @@ Source notes for this preset:
 
 Keep the server context length and the Pi model registration in sync. `server.py` reads `PI_MODAL_MAX_MODEL_LEN`, and `scripts/register_pi_model.py` uses the same environment variable as the default `contextWindow` when it is set. Without an override, registration uses the selected model preset's context window.
 
-Qwen3.6 defaults to 131,072 tokens. DeepSeek V4 Flash starts at 8,192 tokens for bring-up. If the deployed model and GPU shape can support a larger window, set `PI_MODAL_MAX_MODEL_LEN` before smoke testing, deploying, and registering:
+Qwen3.6 defaults to 131,072 tokens. DeepSeek V4 Flash defaults to 65,536 tokens. If the deployed model and GPU shape can support a larger window, set `PI_MODAL_MAX_MODEL_LEN` before smoke testing, deploying, and registering:
 
 ```bash
 PI_MODAL_MAX_MODEL_LEN=262144 uv run --env-file .env modal run server.py \
