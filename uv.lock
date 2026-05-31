@@ -561,7 +561,7 @@ wheels = [
 ]
 
 [[package]]
-name = "pi-modal-serve"
+name = "pi-modal-deploy"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
