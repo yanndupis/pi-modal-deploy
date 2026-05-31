@@ -47,7 +47,7 @@ This repo ships presets for the following Modal-hosted SGLang models:
 
 | Model | Modal GPU | Context |
 | --- | --- | ---: |
-| `Qwen/Qwen3.6-27B-FP8` | `H100!:1` | `131072` |
+| `Qwen/Qwen3.6-27B-FP8` | `H100:1` | `131072` |
 | `deepseek-ai/DeepSeek-V4-Flash` | `H200:4` | `65536` |
 
 Qwen 3.6 is the default model. To use DeepSeek V4 Flash instead, set:
@@ -64,7 +64,7 @@ Modal bills for actual runtime, so cost depends mostly on how long the endpoint 
 
 | Preset | GPU cost |
 | --- | ---: |
-| Qwen 3.6 on `H100!:1` | about `$3.95 / hour` |
+| Qwen 3.6 on `H100:1` | about `$3.95 / hour` |
 | DeepSeek V4 Flash on `H200:4` | about `$18.16 / hour` |
 
 CPU, memory, volumes, region multipliers, and non-preemptible settings can add to this. Check the [Modal pricing page](https://modal.com/pricing) for current rates before running long sessions.

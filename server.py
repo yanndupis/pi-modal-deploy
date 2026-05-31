@@ -52,7 +52,7 @@ DEEPSEEK_V4_FLASH_EXTRA_SERVER_ARGS = " ".join(
 MODEL_PRESETS = {
     QWEN_MODEL_ID: {
         "app_name": "pi-modal-qwen3-6-27b-fp8",
-        "gpu": "H100!:1",
+        "gpu": "H100:1",
         "max_model_len": "131072",
         "mem_fraction_static": "0.8",
         "precompile_deepgemm": "1",
@@ -106,7 +106,7 @@ SERVED_MODEL_NAME = os.environ.get(
 APP_NAME = os.environ.get(
     "PI_MODAL_APP_NAME", MODEL_PRESET.get("app_name", "pi-modal-sglang")
 )
-GPU = os.environ.get("PI_MODAL_GPU", MODEL_PRESET.get("gpu", "H100!:1"))
+GPU = os.environ.get("PI_MODAL_GPU", MODEL_PRESET.get("gpu", "H100:1"))
 TP_SIZE = int(os.environ.get("PI_MODAL_TP_SIZE", MODEL_PRESET.get("tp_size", "1")))
 DEFAULT_MAX_MODEL_LEN = int(MODEL_PRESET.get("max_model_len", "131072"))
 MAX_MODEL_LEN = int(
