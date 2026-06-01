@@ -20,25 +20,6 @@ uv run modal setup
 pi install .
 ```
 
-## Happy Path
-
-Run the default Qwen 3.6 preset:
-
-```bash
-uv run python scripts/setup_auth.py --create-modal-secret
-uv run --env-file .env modal run server.py --timeout 1800 --prompt "Say ready."
-uv run --env-file .env modal deploy server.py
-uv run --env-file .env python scripts/register_pi_model.py \
-  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
-```
-
-Use DeepSeek V4 Flash instead:
-
-```bash
-PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
-uv run --env-file .env modal run server.py --timeout 3600 --prompt "Say ready."
-```
-
 ## Bootstrap With Pi
 
 After installing the skill, invoke it explicitly in Pi:
@@ -59,6 +40,32 @@ Once the flow finishes, Pi should use:
 - Provider: `pi-modal`
 - Model: the Modal-hosted model registered by the skill
 - Thinking: `off` by default, with `Shift+Tab` available in interactive Pi to cycle thinking levels
+
+## Manual Happy Path
+
+If you are working from a local checkout instead of asking Pi to run the skill, run the default Qwen 3.6 preset with:
+
+```bash
+uv run python scripts/setup_auth.py --create-modal-secret
+uv run --env-file .env modal run server.py --timeout 1800 --prompt "Say ready."
+uv run --env-file .env modal deploy server.py
+uv run --env-file .env python scripts/register_pi_model.py \
+  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+```
+
+Use DeepSeek V4 Flash instead by prefixing the Modal and registration commands with the model id:
+
+```bash
+PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
+uv run --env-file .env modal run server.py --timeout 3600 --prompt "Say ready."
+
+PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
+uv run --env-file .env modal deploy server.py
+
+PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
+uv run --env-file .env python scripts/register_pi_model.py \
+  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+```
 
 ## Supported And Tested Models
 
@@ -89,18 +96,6 @@ Modal bills for actual runtime, so cost depends mostly on how long the endpoint 
 CPU, memory, volumes, region multipliers, and non-preemptible settings can add to this. Check the [Modal pricing page](https://modal.com/pricing) for current rates before running long sessions.
 
 Cold starts can take several minutes because SGLang has to load model weights and prepare runtime kernels. DeepSeek V4 Flash can spend significant time on first-run CUDA graph capture. Once warm, short smoke-test requests have completed quickly in validation. For interactive Pi sessions, consider keeping the Modal app warm long enough to avoid repeated cold starts.
-
-## Manual Commands
-
-The skill runs these steps for you, but the core commands are:
-
-```bash
-uv run python scripts/setup_auth.py --create-modal-secret
-uv run --env-file .env modal run server.py --timeout 1800 --prompt "Say ready."
-uv run --env-file .env modal deploy server.py
-uv run --env-file .env python scripts/register_pi_model.py \
-  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
-```
 
 ## References
 
