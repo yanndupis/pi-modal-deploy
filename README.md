@@ -41,9 +41,9 @@ Once the flow finishes, Pi should use:
 - Model: the Modal-hosted model registered by the skill
 - Thinking: `off` by default, with `Shift+Tab` available in interactive Pi to cycle thinking levels
 
-## Manual Happy Path
+## Manual Setup
 
-If you are working from a local checkout instead of asking Pi to run the skill, run the default Qwen 3.6 preset with:
+If you want to run the commands yourself instead of asking Pi to run the skill, use the default Qwen 3.6 preset:
 
 ```bash
 uv run python scripts/setup_auth.py --create-modal-secret
