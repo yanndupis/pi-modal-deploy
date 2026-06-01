@@ -56,12 +56,15 @@ DEEPSEEK_V4_FLASH_EXTRA_SERVER_ARGS = " ".join(
     [
         "--trust-remote-code",
         "--moe-runner-backend",
-        "flashinfer_mxfp4",
-        "--disable-cuda-graph",
-        "--skip-server-warmup",
-        "--disable-flashinfer-autotune",
-        "--max-total-tokens",
-        "262144",
+        "marlin",
+        "--speculative-algorithm",
+        "EAGLE",
+        "--speculative-num-steps",
+        "3",
+        "--speculative-eagle-topk",
+        "1",
+        "--speculative-num-draft-tokens",
+        "4",
     ]
 )
 
@@ -89,7 +92,7 @@ MODEL_PRESETS = {
         "mem_fraction_static": "",
         "precompile_deepgemm": "0",
         "reasoning_parser": "deepseek-v4",
-        "sglang_env": "SGLANG_ENABLE_JIT_DEEPGEMM=0",
+        "sglang_env": "SGLANG_ENABLE_SPEC_V2=1 SGLANG_ENABLE_JIT_DEEPGEMM=0",
         "sglang_image": DEEPSEEK_SGLANG_IMAGE_TAG,
         "thinking_template_flag": "thinking",
         "tool_call_parser": "deepseekv4",
@@ -165,8 +168,11 @@ TOOL_CALL_PARSER = os.environ.get(
 EXTRA_SERVER_ARGS = os.environ.get(
     "PI_MODAL_EXTRA_SERVER_ARGS", MODEL_PRESET.get("extra_server_args", "")
 )
+SGLANG_ENV = os.environ.get(
+    "PI_MODAL_SGLANG_ENV", MODEL_PRESET.get("sglang_env", "")
+)
 SGLANG_EXTRA_ENV = _parse_env_assignments(
-    os.environ.get("PI_MODAL_SGLANG_ENV", MODEL_PRESET.get("sglang_env", ""))
+    SGLANG_ENV
 )
 THINKING_TEMPLATE_FLAG = os.environ.get(
     "PI_MODAL_THINKING_TEMPLATE_FLAG",
@@ -440,6 +446,7 @@ class SGLangServer:
     reasoning_parser: str = modal.parameter(default=REASONING_PARSER)
     tool_call_parser: str = modal.parameter(default=TOOL_CALL_PARSER)
     extra_server_args: str = modal.parameter(default=EXTRA_SERVER_ARGS)
+    sglang_env: str = modal.parameter(default=SGLANG_ENV)
     warmup_timeout: int = modal.parameter(default=WARMUP_TIMEOUT)
 
     @modal.enter()
@@ -461,15 +468,17 @@ class SGLangServer:
             api_key=api_key,
         )
 
+        sglang_extra_env = _parse_env_assignments(self.sglang_env)
+
         print("Starting SGLang server:")
         print(_redact_command(cmd))
-        if SGLANG_EXTRA_ENV:
-            print("SGLang env override keys:", ", ".join(sorted(SGLANG_EXTRA_ENV)))
+        if sglang_extra_env:
+            print("SGLang env override keys:", ", ".join(sorted(sglang_extra_env)))
 
         self.process = subprocess.Popen(
             cmd,
             start_new_session=True,
-            env={**os.environ, **SGLANG_EXTRA_ENV},
+            env={**os.environ, **sglang_extra_env},
         )
         _wait_ready(self.process, api_key=api_key)
         _warmup(
@@ -638,6 +647,7 @@ async def main(
         reasoning_parser=REASONING_PARSER,
         tool_call_parser=TOOL_CALL_PARSER,
         extra_server_args=EXTRA_SERVER_ARGS,
+        sglang_env=SGLANG_ENV,
         warmup_timeout=WARMUP_TIMEOUT,
     )
     url = await server.serve.get_web_url.aio()
