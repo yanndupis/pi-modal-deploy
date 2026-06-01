@@ -20,6 +20,25 @@ uv run modal setup
 pi install .
 ```
 
+## Happy Path
+
+Run the default Qwen 3.6 preset:
+
+```bash
+uv run python scripts/setup_auth.py --create-modal-secret
+uv run --env-file .env modal run server.py --timeout 1800 --prompt "Say ready."
+uv run --env-file .env modal deploy server.py
+uv run --env-file .env python scripts/register_pi_model.py \
+  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+```
+
+Use DeepSeek V4 Flash instead:
+
+```bash
+PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
+uv run --env-file .env modal run server.py --timeout 3600 --prompt "Say ready."
+```
+
 ## Bootstrap With Pi
 
 After installing the skill, invoke it explicitly in Pi:
