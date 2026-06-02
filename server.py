@@ -36,29 +36,49 @@ DEEPSEEK_V4_FLASH_MODEL_ID = "deepseek-ai/DeepSeek-V4-Flash"
 QWEN_SGLANG_IMAGE_TAG = "lmsysorg/sglang:v0.5.12.post1-cu130-runtime"
 DEEPSEEK_SGLANG_IMAGE_TAG = "lmsysorg/sglang:v0.5.12.post1"
 DEFAULT_MODEL_ID = QWEN_MODEL_ID
+QWEN_SPECULATIVE_EXTRA_SERVER_ARGS = " ".join(
+    [
+        "--speculative-algorithm",
+        "EAGLE",
+        "--speculative-num-steps",
+        "3",
+        "--speculative-eagle-topk",
+        "1",
+        "--speculative-num-draft-tokens",
+        "4",
+        "--mamba-scheduler-strategy",
+        "extra_buffer",
+        "--page-size",
+        "64",
+    ]
+)
 DEEPSEEK_V4_FLASH_EXTRA_SERVER_ARGS = " ".join(
     [
         "--trust-remote-code",
         "--moe-runner-backend",
-        "flashinfer_mxfp4",
-        "--disable-cuda-graph",
-        "--skip-server-warmup",
-        "--disable-flashinfer-autotune",
-        "--max-total-tokens",
-        "262144",
+        "marlin",
+        "--speculative-algorithm",
+        "EAGLE",
+        "--speculative-num-steps",
+        "3",
+        "--speculative-eagle-topk",
+        "1",
+        "--speculative-num-draft-tokens",
+        "4",
     ]
 )
 
 MODEL_PRESETS = {
     QWEN_MODEL_ID: {
         "app_name": "pi-modal-qwen3-6-27b-fp8",
+        "extra_server_args": QWEN_SPECULATIVE_EXTRA_SERVER_ARGS,
         "gpu": "H100:1",
         "max_model_len": "131072",
         "mem_fraction_static": "0.8",
         "precompile_deepgemm": "1",
         "reasoning_parser": "qwen3",
         "revision": QWEN_MODEL_REVISION,
-        "sglang_env": "",
+        "sglang_env": "SGLANG_ENABLE_SPEC_V2=1",
         "sglang_image": QWEN_SGLANG_IMAGE_TAG,
         "thinking_template_flag": "enable_thinking",
         "tool_call_parser": "qwen3_coder",
@@ -72,7 +92,7 @@ MODEL_PRESETS = {
         "mem_fraction_static": "",
         "precompile_deepgemm": "0",
         "reasoning_parser": "deepseek-v4",
-        "sglang_env": "SGLANG_ENABLE_JIT_DEEPGEMM=0",
+        "sglang_env": "SGLANG_ENABLE_SPEC_V2=1 SGLANG_ENABLE_JIT_DEEPGEMM=0",
         "sglang_image": DEEPSEEK_SGLANG_IMAGE_TAG,
         "thinking_template_flag": "thinking",
         "tool_call_parser": "deepseekv4",
@@ -148,8 +168,11 @@ TOOL_CALL_PARSER = os.environ.get(
 EXTRA_SERVER_ARGS = os.environ.get(
     "PI_MODAL_EXTRA_SERVER_ARGS", MODEL_PRESET.get("extra_server_args", "")
 )
+SGLANG_ENV = os.environ.get(
+    "PI_MODAL_SGLANG_ENV", MODEL_PRESET.get("sglang_env", "")
+)
 SGLANG_EXTRA_ENV = _parse_env_assignments(
-    os.environ.get("PI_MODAL_SGLANG_ENV", MODEL_PRESET.get("sglang_env", ""))
+    SGLANG_ENV
 )
 THINKING_TEMPLATE_FLAG = os.environ.get(
     "PI_MODAL_THINKING_TEMPLATE_FLAG",
@@ -423,6 +446,7 @@ class SGLangServer:
     reasoning_parser: str = modal.parameter(default=REASONING_PARSER)
     tool_call_parser: str = modal.parameter(default=TOOL_CALL_PARSER)
     extra_server_args: str = modal.parameter(default=EXTRA_SERVER_ARGS)
+    sglang_env: str = modal.parameter(default=SGLANG_ENV)
     warmup_timeout: int = modal.parameter(default=WARMUP_TIMEOUT)
 
     @modal.enter()
@@ -444,15 +468,17 @@ class SGLangServer:
             api_key=api_key,
         )
 
+        sglang_extra_env = _parse_env_assignments(self.sglang_env)
+
         print("Starting SGLang server:")
         print(_redact_command(cmd))
-        if SGLANG_EXTRA_ENV:
-            print("SGLang env override keys:", ", ".join(sorted(SGLANG_EXTRA_ENV)))
+        if sglang_extra_env:
+            print("SGLang env override keys:", ", ".join(sorted(sglang_extra_env)))
 
         self.process = subprocess.Popen(
             cmd,
             start_new_session=True,
-            env={**os.environ, **SGLANG_EXTRA_ENV},
+            env={**os.environ, **sglang_extra_env},
         )
         _wait_ready(self.process, api_key=api_key)
         _warmup(
@@ -567,6 +593,23 @@ async def _post_chat_completion(
     raise TimeoutError(f"No chat completion response within {timeout} seconds")
 
 
+async def _timed_chat_completion(
+    *,
+    url: str,
+    api_key: str,
+    payload: dict[str, Any],
+    timeout: int,
+) -> tuple[dict[str, Any], float]:
+    started_at = time.monotonic()
+    response = await _post_chat_completion(
+        url=url,
+        api_key=api_key,
+        payload=payload,
+        timeout=timeout,
+    )
+    return response, time.monotonic() - started_at
+
+
 def _local_api_key() -> str:
     api_key = os.environ.get("PI_MODAL_API_KEY") or os.environ.get(SGLANG_API_KEY_ENV)
     if not api_key:
@@ -583,7 +626,14 @@ async def main(
     tool_test: bool = False,
     timeout: int = 30 * MINUTES,
     enable_thinking: bool = False,
+    max_tokens: int = 128,
+    repeat: int = 1,
 ) -> None:
+    if max_tokens < 1:
+        raise ValueError("max_tokens must be at least 1.")
+    if repeat < 1:
+        raise ValueError("repeat must be at least 1.")
+
     api_key = _local_api_key()
     server = SGLangServer(
         model_id=MODEL_ID,
@@ -597,6 +647,7 @@ async def main(
         reasoning_parser=REASONING_PARSER,
         tool_call_parser=TOOL_CALL_PARSER,
         extra_server_args=EXTRA_SERVER_ARGS,
+        sglang_env=SGLANG_ENV,
         warmup_timeout=WARMUP_TIMEOUT,
     )
     url = await server.serve.get_web_url.aio()
@@ -605,25 +656,46 @@ async def main(
     payload: dict[str, Any]
     if tool_test:
         payload = _tool_call_payload(SERVED_MODEL_NAME)
+        payload["max_tokens"] = max_tokens
     else:
         payload = {
             "model": SERVED_MODEL_NAME,
             "messages": _sample_messages(prompt),
-            "max_tokens": 128,
+            "max_tokens": max_tokens,
             "temperature": 0,
         }
         if chat_template_kwargs := _chat_template_kwargs(enable_thinking):
             payload["chat_template_kwargs"] = chat_template_kwargs
 
-    response = await _post_chat_completion(
-        url=url,
-        api_key=api_key,
-        payload=payload,
-        timeout=timeout,
-    )
+    response: dict[str, Any] | None = None
+    timings: list[float] = []
+    for index in range(repeat):
+        response, elapsed = await _timed_chat_completion(
+            url=url,
+            api_key=api_key,
+            payload=payload,
+            timeout=timeout,
+        )
+        timings.append(elapsed)
+        usage = response.get("usage", {})
+        token_summary = ""
+        if usage:
+            token_summary = (
+                f", prompt_tokens={usage.get('prompt_tokens')}, "
+                f"completion_tokens={usage.get('completion_tokens')}, "
+                f"total_tokens={usage.get('total_tokens')}"
+            )
+        print(f"Request {index + 1}/{repeat}: {elapsed:.2f}s{token_summary}")
 
+    assert response is not None
     message = response["choices"][0]["message"]
     print(json.dumps(message, indent=2))
+    if repeat > 1:
+        average = sum(timings) / len(timings)
+        print(
+            "Timing summary: "
+            f"min={min(timings):.2f}s, avg={average:.2f}s, max={max(timings):.2f}s"
+        )
 
     if tool_test and not message.get("tool_calls"):
         raise RuntimeError("Tool-call smoke test returned no structured tool_calls.")

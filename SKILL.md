@@ -28,6 +28,7 @@ Use `pi install .` for reusable local setup. For ad-hoc development from a check
 - Tensor parallelism: `1`
 - Context: `131072` by default
 - Parser defaults: `PI_MODAL_REASONING_PARSER=qwen3`, `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
+- Speculative decoding: SGLang EAGLE with `SGLANG_ENABLE_SPEC_V2=1`
 - Auth: SGLang `--api-key` from Modal Secret `pi-modal-api-key`
 - DeepGEMM: precompiled during Modal image build unless `PI_MODAL_PRECOMPILE_DEEPGEMM=0`
 
@@ -51,9 +52,11 @@ The default preset expands to:
 - `PI_MODAL_GPU=H100:1`
 - `PI_MODAL_TP_SIZE=1`
 - `PI_MODAL_SGLANG_IMAGE=lmsysorg/sglang:v0.5.12.post1-cu130-runtime`
+- `PI_MODAL_SGLANG_ENV="SGLANG_ENABLE_SPEC_V2=1"`
 - `PI_MODAL_REASONING_PARSER=qwen3`
 - `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
 - `PI_MODAL_THINKING_TEMPLATE_FLAG=enable_thinking`
+- `PI_MODAL_EXTRA_SERVER_ARGS="--speculative-algorithm EAGLE --speculative-num-steps 3 --speculative-eagle-topk 1 --speculative-num-draft-tokens 4 --mamba-scheduler-strategy extra_buffer --page-size 64"`
 
 ### DeepSeek V4 Flash FP4
 
@@ -64,7 +67,7 @@ PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
 uv run --env-file .env modal run server.py --timeout 3600 --prompt "Say ready."
 ```
 
-This preset was smoke-tested on Modal `H200:4` with SGLang `v0.5.12.post1`. The validation returned HTTP `200 OK` from `/v1/chat/completions` with `content: "ready"` after the server reported ready.
+This preset was smoke-tested on Modal `H200:4` with SGLang `v0.5.12.post1`. The validation returned HTTP `200 OK` from `/v1/chat/completions` with `content: "deepseek speculative ready"` after the server reported ready.
 
 The SGLang cookbook describes DeepSeek-V4-Flash as a 284B MoE model with 13B active parameters and single-node serving on 4 GPUs for B200, GB200, GB300, or H200. Modal supports `B200`, `H200`, and `H100` multi-GPU containers.
 
@@ -91,11 +94,15 @@ The DeepSeek preset expands to:
 - `PI_MODAL_SGLANG_IMAGE=lmsysorg/sglang:v0.5.12.post1`
 - `PI_MODAL_REASONING_PARSER=deepseek-v4`
 - `PI_MODAL_TOOL_CALL_PARSER=deepseekv4`
-- `PI_MODAL_SGLANG_ENV="SGLANG_ENABLE_JIT_DEEPGEMM=0"`
+- `PI_MODAL_SGLANG_ENV="SGLANG_ENABLE_SPEC_V2=1 SGLANG_ENABLE_JIT_DEEPGEMM=0"`
 - `PI_MODAL_THINKING_TEMPLATE_FLAG=thinking`
-- `PI_MODAL_EXTRA_SERVER_ARGS="--trust-remote-code --moe-runner-backend flashinfer_mxfp4 --disable-cuda-graph --skip-server-warmup --disable-flashinfer-autotune --max-total-tokens 262144"`
+- `PI_MODAL_EXTRA_SERVER_ARGS="--trust-remote-code --moe-runner-backend marlin --speculative-algorithm EAGLE --speculative-num-steps 3 --speculative-eagle-topk 1 --speculative-num-draft-tokens 4"`
 
-Start the DeepSeek preset at `PI_MODAL_MAX_MODEL_LEN=65536`. The first bring-up used 8,192 tokens to reduce variables, but 65,536 is a more useful public default for Pi coding-agent sessions while staying below the explicit `--max-total-tokens 262144` cap. DeepSeek V4 advertises a 1M-token context, and SGLang recommends much larger limits for long-reasoning benchmarks, but raise Modal context gradually after the base deployment works and GPU memory is confirmed.
+Start the DeepSeek preset at `PI_MODAL_MAX_MODEL_LEN=65536`. DeepSeek V4 advertises a 1M-token context, and SGLang recommends much larger limits for long-reasoning benchmarks, but raise Modal context gradually after the base deployment works and GPU memory is confirmed.
+
+The DeepSeek preset follows the SGLang DeepSeek-V4 command generator's `H200 FP4 / Flash / low-latency` shape: original FP4 checkpoint, TP=4, Marlin MoE runner, and EAGLE speculative decoding with 3 steps and 4 draft tokens. Earlier experiments with FlashInfer MXFP4 plus Qwen-style speculative scheduler flags failed or became unhealthy; do not reintroduce those flags unless the SGLang recipe changes.
+
+First-run CUDA graph capture for this preset can be slow. In validation, the app returned successfully after a long cold start, and the POST itself completed with `execution: 2.77s` for a tiny smoke response.
 
 Source notes for this preset:
 
@@ -186,7 +193,7 @@ Success looks like:
 
 - Modal image build succeeds.
 - Server command includes the selected model and matching parser flags.
-- For DeepSeek, server command includes `--moe-runner-backend flashinfer_mxfp4` and `--max-total-tokens 262144`.
+- For DeepSeek, server command includes `--moe-runner-backend marlin`, `--speculative-algorithm EAGLE`, and `--speculative-num-draft-tokens 4`.
 - Response is HTTP `200 OK`.
 - JSON message has coherent `content`.
 
