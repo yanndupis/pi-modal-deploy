@@ -50,7 +50,7 @@ uv run python scripts/setup_auth.py --create-modal-secret
 uv run --env-file .env modal run server.py --timeout 1800 --prompt "Say ready."
 uv run --env-file .env modal deploy server.py
 uv run --env-file .env python scripts/register_pi_model.py \
-  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+  --base-url "https://YOUR-ENDPOINT/v1"
 ```
 
 Use DeepSeek V4 Flash instead by prefixing the Modal and registration commands with the model id:
@@ -64,8 +64,10 @@ uv run --env-file .env modal deploy server.py
 
 PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
 uv run --env-file .env python scripts/register_pi_model.py \
-  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+  --base-url "https://YOUR-ENDPOINT/v1"
 ```
+
+The deployed endpoint is a Modal HTTP Server URL; copy the URL Modal prints and append `/v1` when registering it with Pi.
 
 ## Supported And Tested Models
 

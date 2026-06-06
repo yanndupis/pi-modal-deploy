@@ -30,6 +30,7 @@ Use `pi install .` for reusable local setup. For ad-hoc development from a check
 - Parser defaults: `PI_MODAL_REASONING_PARSER=qwen3`, `PI_MODAL_TOOL_CALL_PARSER=qwen3_coder`
 - Speculative decoding: SGLang EAGLE with `SGLANG_ENABLE_SPEC_V2=1`
 - Auth: SGLang `--api-key` from Modal Secret `pi-modal-api-key`
+- Modal routing: `@modal.experimental.http_server` with `PI_MODAL_REGION=us-east` and `PI_MODAL_PROXY_REGIONS=us-east` by default
 - DeepGEMM: precompiled during Modal image build unless `PI_MODAL_PRECOMPILE_DEEPGEMM=0`
 
 Treat Qwen3.6 as the default because it is the validated single-GPU path. DeepSeek-V4-Flash FP4 is also supported through an explicit preset.
@@ -81,7 +82,7 @@ uv run --env-file .env modal deploy server.py
 
 PI_MODAL_MODEL_ID=deepseek-ai/DeepSeek-V4-Flash \
 uv run --env-file .env python scripts/register_pi_model.py \
-  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+  --base-url "https://YOUR-ENDPOINT/v1"
 ```
 
 The DeepSeek preset expands to:
@@ -123,7 +124,7 @@ PI_MODAL_MAX_MODEL_LEN=262144 uv run --env-file .env modal run server.py \
   --timeout 1800 --prompt "Say ready."
 PI_MODAL_MAX_MODEL_LEN=262144 uv run --env-file .env modal deploy server.py
 PI_MODAL_MAX_MODEL_LEN=262144 uv run --env-file .env python scripts/register_pi_model.py \
-  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+  --base-url "https://YOUR-ENDPOINT/v1"
 ```
 
 For non-default models, set the model-related environment variables deliberately:
@@ -211,7 +212,7 @@ Deploy the app after the smoke test passes:
 uv run --env-file .env modal deploy server.py
 ```
 
-Capture the deployed web endpoint from Modal output. The Pi provider `baseUrl` should be the endpoint plus `/v1`.
+Capture the deployed Modal HTTP Server endpoint from Modal output. The Pi provider `baseUrl` should be the endpoint plus `/v1`.
 
 ## Register With Pi
 
@@ -219,7 +220,7 @@ Use the bundled updater instead of hand-editing JSON:
 
 ```bash
 uv run --env-file .env python scripts/register_pi_model.py \
-  --base-url "https://YOUR-ENDPOINT.modal.run/v1"
+  --base-url "https://YOUR-ENDPOINT/v1"
 ```
 
 The script atomically updates `~/.pi/agent/models.json`, creates or updates provider `pi-modal`, reads `PI_MODAL_API_KEY` from the environment unless `--api-key` is passed explicitly, advertises `contextWindow` from `PI_MODAL_MAX_MODEL_LEN`, and preserves unrelated providers. It also sets Pi's default provider/model and `defaultThinkingLevel: "off"` so reasoning-capable models return normal text through Pi by default.
