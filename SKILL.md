@@ -45,14 +45,17 @@ Which Modal model preset should I deploy?
 
 1. Qwen 3.6 27B FP8 on H100:1
    Default/recommended, lower cost, single GPU.
+   Context: 131,072 tokens by default here; Qwen3.6 documents 262,144 tokens natively and up to 1,010,000 with long-context overrides.
    Rough Modal GPU-only cost: about $3.95/hour.
 
 2. DeepSeek V4 Flash FP4 on H200:4
    Larger model, higher cost, slower cold start.
+   Context: 65,536 tokens by default here; DeepSeek-V4 documents a 1M-token context window.
    Rough Modal GPU-only cost: about $18.16/hour.
 ```
 
 Mention that CPU, memory, volumes, region multipliers, and non-preemptible settings can add cost, and check https://modal.com/pricing for current rates before long sessions.
+Also mention that raising context length increases memory pressure; increase `PI_MODAL_MAX_MODEL_LEN` gradually after the base deployment is smoke-tested.
 
 ## Supported Model Presets
 
