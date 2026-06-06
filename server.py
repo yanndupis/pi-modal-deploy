@@ -25,6 +25,7 @@ import time
 from typing import Any
 
 import modal
+import modal.experimental
 
 
 MINUTES = 60
@@ -139,6 +140,13 @@ SCALEDOWN_WINDOW = int(
 TARGET_INPUTS = int(os.environ.get("PI_MODAL_TARGET_INPUTS", "8"))
 MAX_INPUTS = int(os.environ.get("PI_MODAL_MAX_INPUTS", "32"))
 MAX_CONTAINERS = int(os.environ.get("PI_MODAL_MAX_CONTAINERS", "1"))
+REGION = os.environ.get("PI_MODAL_REGION", "us-east").strip()
+PROXY_REGIONS = [
+    region
+    for region in os.environ.get("PI_MODAL_PROXY_REGIONS", REGION).replace(",", " ").split()
+    if region
+]
+EXIT_GRACE_PERIOD = int(os.environ.get("PI_MODAL_EXIT_GRACE_PERIOD", "15"))
 MEM_FRACTION_STATIC = os.environ.get(
     "PI_MODAL_MEM_FRACTION_STATIC", MODEL_PRESET.get("mem_fraction_static", "")
 )
@@ -256,6 +264,13 @@ app = modal.App(name=APP_NAME)
 
 def _auth_headers(api_key: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {api_key}"}
+
+
+def _client_headers(api_key: str, modal_session_id: str) -> dict[str, str]:
+    headers = _auth_headers(api_key)
+    if modal_session_id:
+        headers["Modal-Session-ID"] = modal_session_id
+    return headers
 
 
 def _redact_command(cmd: list[str]) -> str:
@@ -432,8 +447,15 @@ def _chat_template_kwargs(enable_thinking: bool) -> dict[str, bool]:
     startup_timeout=STARTUP_TIMEOUT,
     scaledown_window=SCALEDOWN_WINDOW,
     max_containers=MAX_CONTAINERS,
+    region=REGION,
 )
-@modal.concurrent(target_inputs=TARGET_INPUTS, max_inputs=MAX_INPUTS)
+@modal.experimental.http_server(
+    port=PORT,
+    proxy_regions=PROXY_REGIONS,
+    startup_timeout=STARTUP_TIMEOUT,
+    exit_grace_period=EXIT_GRACE_PERIOD,
+)
+@modal.concurrent(target_inputs=TARGET_INPUTS)
 class SGLangServer:
     model_id: str = modal.parameter(default=MODEL_ID)
     model_revision: str = modal.parameter(default=MODEL_REVISION or "")
@@ -487,10 +509,6 @@ class SGLangServer:
             timeout=int(self.warmup_timeout),
         )
         print("SGLang server is ready.")
-
-    @modal.web_server(port=PORT, startup_timeout=STARTUP_TIMEOUT)
-    def serve(self) -> None:
-        pass
 
     @modal.exit()
     def stop(self) -> None:
@@ -562,12 +580,13 @@ async def _post_chat_completion(
     *,
     url: str,
     api_key: str,
+    modal_session_id: str,
     payload: dict[str, Any],
     timeout: int,
 ) -> dict[str, Any]:
     import aiohttp
 
-    headers = _auth_headers(api_key)
+    headers = _client_headers(api_key, modal_session_id)
     deadline = time.time() + timeout
 
     async with aiohttp.ClientSession(base_url=url, headers=headers) as session:
@@ -597,6 +616,7 @@ async def _timed_chat_completion(
     *,
     url: str,
     api_key: str,
+    modal_session_id: str,
     payload: dict[str, Any],
     timeout: int,
 ) -> tuple[dict[str, Any], float]:
@@ -604,6 +624,7 @@ async def _timed_chat_completion(
     response = await _post_chat_completion(
         url=url,
         api_key=api_key,
+        modal_session_id=modal_session_id,
         payload=payload,
         timeout=timeout,
     )
@@ -628,6 +649,7 @@ async def main(
     enable_thinking: bool = False,
     max_tokens: int = 128,
     repeat: int = 1,
+    modal_session_id: str = "pi-modal-smoke-test",
 ) -> None:
     if max_tokens < 1:
         raise ValueError("max_tokens must be at least 1.")
@@ -635,22 +657,7 @@ async def main(
         raise ValueError("repeat must be at least 1.")
 
     api_key = _local_api_key()
-    server = SGLangServer(
-        model_id=MODEL_ID,
-        model_revision=MODEL_REVISION or "",
-        served_model_name=SERVED_MODEL_NAME,
-        max_model_len=MAX_MODEL_LEN,
-        tp_size=TP_SIZE,
-        mem_fraction_static=MEM_FRACTION_STATIC,
-        cuda_graph_max_bs=max(2, TARGET_INPUTS * 2),
-        max_running_requests=MAX_INPUTS,
-        reasoning_parser=REASONING_PARSER,
-        tool_call_parser=TOOL_CALL_PARSER,
-        extra_server_args=EXTRA_SERVER_ARGS,
-        sglang_env=SGLANG_ENV,
-        warmup_timeout=WARMUP_TIMEOUT,
-    )
-    url = await server.serve.get_web_url.aio()
+    url = (await SGLangServer._experimental_get_flash_urls.aio())[0]
     print(f"Testing {SERVED_MODEL_NAME} at {url}")
 
     payload: dict[str, Any]
@@ -673,6 +680,7 @@ async def main(
         response, elapsed = await _timed_chat_completion(
             url=url,
             api_key=api_key,
+            modal_session_id=modal_session_id,
             payload=payload,
             timeout=timeout,
         )
