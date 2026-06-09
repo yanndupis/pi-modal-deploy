@@ -2,6 +2,10 @@
 
 Deploy a Modal-hosted SGLang endpoint and register it as a Pi model provider.
 
+## Demo
+
+Demo video link coming soon.
+
 ## Install The Skill In Pi
 
 Install directly from GitHub:
