@@ -2,6 +2,12 @@
 
 Deploy a Modal-hosted SGLang endpoint and register it as a Pi model provider.
 
+## Demo
+
+Watch Pi deploy a Modal-hosted model, switch to it, and use it to generate a small HTML page:
+
+[![Watch the pi-modal-deploy demo](assets/demo-thumbnail.jpg)](https://github.com/user-attachments/assets/2a7935e4-821a-4d9e-9a65-07f34986892b)
+
 ## Install The Skill In Pi
 
 Install directly from GitHub:
