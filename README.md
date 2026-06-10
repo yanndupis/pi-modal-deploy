@@ -1,6 +1,14 @@
 # pi-modal-deploy
 
-Deploy a Modal-hosted SGLang endpoint and register it as a Pi model provider.
+Deploy Qwen 3.6 27B FP8 or DeepSeek V4 Flash FP4 on Modal with SGLang, automatically register the endpoint as a Pi model provider, and start using it from Pi.
+
+## Features
+
+- Sets up `PI_MODAL_API_KEY`, stores it in a Modal Secret, and registers Pi with the same bearer token so the endpoint is not left unauthenticated.
+- Registers the Modal OpenAI-compatible `/v1` endpoint in Pi with model metadata, context length, and thinking-format defaults.
+- Uses Modal's low-latency SGLang pattern with `@modal.experimental.http_server`, regional proxy routing, and warmup checks.
+- Enables SGLang EAGLE speculative decoding for the supported model presets.
+- Reuses Modal Volumes for Hugging Face model weights and DeepGEMM compilation artifacts where enabled to reduce repeated startup work.
 
 ## Demo
 
